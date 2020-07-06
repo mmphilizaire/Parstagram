@@ -74,26 +74,5 @@ public class MainActivity extends AppCompatActivity {
         });
         mBottomNavigationView.setSelectedItemId(R.id.action_home);
 
-        //queryPosts();
-        
-    }
-
-    private void queryPosts() {
-
-        ParseQuery<Post> query = ParseQuery.getQuery(Post.class);
-        query.include(Post.sKEY_USER);
-        query.findInBackground(new FindCallback<Post>() {
-            @Override
-            public void done(List<Post> posts, ParseException e) {
-                if(e != null){
-                    Log.e(sTAG, "Issue with getting posts", e);
-                    return;
-                }
-                for(Post post : posts){
-                    Log.i(sTAG, "Post: " + post.getDescription() + ", usernmae: " + post.getUser().getUsername());
-                }
-            }
-        });
-
     }
 }
