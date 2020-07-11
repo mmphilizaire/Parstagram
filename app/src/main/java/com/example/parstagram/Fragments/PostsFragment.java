@@ -1,52 +1,37 @@
 package com.example.parstagram.Fragments;
 
-import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Bundle;
 
-import androidx.annotation.Nullable;
-import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.Toast;
 
-import com.example.parstagram.MainActivity;
+import com.example.parstagram.EndlessRecyclerViewScrollListener;
 import com.example.parstagram.Post;
 import com.example.parstagram.PostsAdapter;
 import com.example.parstagram.R;
 import com.parse.FindCallback;
 import com.parse.ParseException;
-import com.parse.ParseFile;
 import com.parse.ParseQuery;
-import com.parse.ParseUser;
-import com.parse.SaveCallback;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.app.Activity.RESULT_OK;
-
 public class PostsFragment extends Fragment {
 
-    public static final String sTAG = "PostsFragment";
+    public static final String TAG = "PostsFragment";
 
-    private RecyclerView mPostsRecyclerView;
+    protected RecyclerView mPostsRecyclerView;
     protected PostsAdapter mAdapter;
     protected List<Post> mPosts;
+    private SwipeRefreshLayout mSwipeContainer;
+    protected EndlessRecyclerViewScrollListener scrollListener;
 
     public PostsFragment() {
         // Required empty public constructor
@@ -66,33 +51,74 @@ public class PostsFragment extends Fragment {
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mPostsRecyclerView = view.findViewById(R.id.rvPosts);
+        mSwipeContainer = view.findViewById(R.id.swipeContainer);
+
+        mSwipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                mAdapter.clear();
+                queryPosts();
+                mSwipeContainer.setRefreshing(false);
+            }
+        });
 
         mPosts = new ArrayList<>();
 
-        mAdapter = new PostsAdapter(getContext(), mPosts);
+        mAdapter = new PostsAdapter(getContext(), mPosts, false);
         mPostsRecyclerView.setAdapter(mAdapter);
-        mPostsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        setLayout();
+
         queryPosts();
     }
 
-    protected void queryPosts() {
+    private void setLayout() {
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
+        mPostsRecyclerView.setLayoutManager(linearLayoutManager);
 
+        scrollListener = new EndlessRecyclerViewScrollListener(linearLayoutManager) {
+            @Override
+            public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
+                // Triggered only when new data needs to be appended to the list
+                // Add whatever code is needed to append new items to the bottom of the list
+                loadNextData(page);
+            }
+        };
+        mPostsRecyclerView.addOnScrollListener(scrollListener);
+    }
+
+    protected void loadNextData(int page) {
         ParseQuery<Post> query = ParseQuery.getQuery(Post.class);
-        query.include(Post.sKEY_USER);
+        query.include(Post.KEY_USER);
         query.setLimit(20);
-        query.addDescendingOrder(Post.sKEY_CREATEDAT);
+        Log.e("Mishka", ""+page);
+        query.setSkip(page*20);
+        query.addDescendingOrder(Post.KEY_CREATEDAT);
         query.findInBackground(new FindCallback<Post>() {
             @Override
             public void done(List<Post> posts, ParseException e) {
                 if(e != null){
-                    Log.e(sTAG, "Issue with getting posts", e);
+                    Log.e(TAG, "Issue with getting posts", e);
                     return;
                 }
-                for(Post post : posts){
-                    Log.i(sTAG, "Post: " + post.getDescription() + ", usernmae: " + post.getUser().getUsername());
+                mAdapter.addAll(posts);
+            }
+        });
+    }
+
+    protected void queryPosts() {
+        ParseQuery<Post> query = ParseQuery.getQuery(Post.class);
+        query.include(Post.KEY_USER);
+        query.setLimit(20);
+        query.addDescendingOrder(Post.KEY_CREATEDAT);
+        query.findInBackground(new FindCallback<Post>() {
+            @Override
+            public void done(List<Post> posts, ParseException e) {
+                if(e != null){
+                    Log.e(TAG, "Issue with getting posts", e);
+                    return;
                 }
-                mPosts.addAll(posts);
-                mAdapter.notifyDataSetChanged();
+                mAdapter.addAll(posts);
             }
         });
 
