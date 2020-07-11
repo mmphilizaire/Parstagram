@@ -35,10 +35,7 @@ public class ProfileFragment extends PostsFragment {
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        setVisible();
-
-        mProfilePictureImageView = view.findViewById(R.id.ivProfilePicture);
-        mUsernameTextView = view.findViewById(R.id.tvUsername);
+        setVisible(view);
 
         Glide.with(getContext()).load(ParseUser.getCurrentUser().getParseFile("profilePicture").getUrl()).transform(new CircleCrop()).into(mProfilePictureImageView);
         mUsernameTextView.setText(ParseUser.getCurrentUser().getUsername());
@@ -46,7 +43,6 @@ public class ProfileFragment extends PostsFragment {
         mAdapter = new PostsAdapter(getContext(), mPosts, true);
         mPostsRecyclerView.setAdapter(mAdapter);
 
-        mLogoutButton = view.findViewById(R.id.btnLogout);
         mLogoutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -76,7 +72,11 @@ public class ProfileFragment extends PostsFragment {
         mPostsRecyclerView.addOnScrollListener(scrollListener);
     }
 
-    private void setVisible() {
+    private void setVisible(View view) {
+        mProfilePictureImageView = view.findViewById(R.id.ivProfilePicture);
+        mUsernameTextView = view.findViewById(R.id.tvUsername);
+        mLogoutButton = view.findViewById(R.id.btnLogout);
+
         mProfilePictureImageView.setVisibility(View.VISIBLE);
         mUsernameTextView.setVisibility(View.VISIBLE);
         mLogoutButton.setVisibility(View.VISIBLE);
